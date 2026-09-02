@@ -81,6 +81,97 @@
     document.querySelectorAll(".elementor-invisible").forEach(function (element) {
       element.classList.remove("elementor-invisible");
     });
+    document.querySelectorAll(".ova-invisible").forEach(function (element) {
+      element.classList.remove("ova-invisible");
+    });
+  }
+
+  function initStaticCharts() {
+    if (!window.Chart) return;
+
+    document.querySelectorAll(".ova-chart[data-id]").forEach(function (chartEl) {
+      var id = chartEl.getAttribute("data-id");
+      var canvas = id ? document.getElementById(id) : chartEl.querySelector("canvas");
+      if (!canvas || chartEl.dataset.staticChartInitialized === "true") return;
+
+      var dataChart = {};
+      try {
+        dataChart = JSON.parse(chartEl.getAttribute("data-chart") || "{}");
+      } catch (error) {
+        return;
+      }
+
+      var radius = chartEl.getAttribute("data-chart-radius") || "70";
+      var border = Number(chartEl.getAttribute("data-border") || 0);
+      var borderColor = chartEl.getAttribute("data-border-color") || "#FFFFFF";
+      var borderColorHover = chartEl.getAttribute("data-border-color-hover") || "#F8FBFE";
+      var canvasBg = chartEl.getAttribute("data-canvas-bg") || "rgba(223, 175, 245, 0.15)";
+      var canvasSize = Number(chartEl.getAttribute("data-canvas-size") || 100);
+
+      var config = {
+        type: "doughnut",
+        data: {
+          labels: dataChart.label || [],
+          datasets: [{
+            label: "Chart",
+            data: dataChart.percent || [],
+            backgroundColor: dataChart.color || [],
+            cutout: radius,
+            hoverOffset: 0,
+            borderWidth: border,
+            borderColor: borderColor,
+            hoverBorderColor: borderColorHover
+          }]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      };
+
+      if (chartEl.getAttribute("data-canvas") === "yes") {
+        config.plugins = [{
+          id: "ova_canvas_background_color",
+          beforeDraw: function (chart) {
+            var ctx = chart.canvas.getContext("2d");
+            var area = chart.chartArea;
+            var x = area.left + area.width / 2 - canvasSize / 2;
+            var y = area.top + area.height / 2 - canvasSize / 2;
+            var radius = 50;
+
+            ctx.fillStyle = canvasBg;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + canvasSize, y, x + canvasSize, y + canvasSize, radius);
+            ctx.arcTo(x + canvasSize, y + canvasSize, x, y + canvasSize, radius);
+            ctx.arcTo(x, y + canvasSize, x, y, radius);
+            ctx.arcTo(x, y, x + canvasSize, y, radius);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }];
+      }
+
+      chartEl.dataset.staticChartInitialized = "true";
+      new window.Chart(canvas.getContext("2d"), config);
+    });
+  }
+
+  function bindStaticMenus() {
+    document.querySelectorAll(".menu-canvas").forEach(function (menu) {
+      if (menu.dataset.staticMenuBound === "true") return;
+      menu.dataset.staticMenuBound = "true";
+
+      menu.querySelectorAll(".menu-toggle, .site-overlay, .close-menu").forEach(function (control) {
+        control.addEventListener("click", function (event) {
+          event.preventDefault();
+          menu.classList.toggle("toggled");
+        });
+      });
+    });
   }
 
   function activateTitle(title) {
@@ -138,10 +229,14 @@
   document.addEventListener("DOMContentLoaded", function () {
     revealStaticAnimatedElements();
     bindStaticControls();
+    bindStaticMenus();
+    initStaticCharts();
   });
 
   window.addEventListener("load", function () {
     revealStaticAnimatedElements();
     bindStaticControls();
+    bindStaticMenus();
+    initStaticCharts();
   });
 })();
